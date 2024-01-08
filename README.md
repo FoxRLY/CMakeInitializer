@@ -2,16 +2,18 @@
 Creates CMake project for C or CPP with modern structure and neat project manager bash script
 ## Requirements:
 - Linux
-- Boost v1.83   >=
-- CMake v3.27   >=
-- Ninja v1.11.1 >= (didn't test older versions, use 1.11 if possible)
-- GTest v1.11   >= (didn't test older versions, use 1.11 if possible)
-- Doxygen
+- Boost   v1.83   >= 
+- CMake   v3.27   >=
+- Ninja   v1.11.1 >=
+- GTest   v1.11   >=
+- Doxygen v1.9.8  >=
+Yes, reqs are a bit high, but I didn't test it on anything else
 ## Features:
 - Fully featured command line program written with use of Boost::program_options
 - Symlinking of ```compile_commands.json``` file in project root for easier clangd LSP header locating (Neovim users will appreciate)
 - Common project structure with ```app```, ```src```, ```include``` and ```test``` directories. No need to specify new files in ```CMakeLists.txt``` as ```GLOB_RECURSE``` is used (Opinionated, but at least works)
 - Project manager script (run without arguments to see help)
+- Autodetection of project libraries (removes error-prone process of adding or removing library targets from `target_link_library` calls)
 - Docs for your project with Doxygen (outdated css style my beloved)
 - Tests and ease of adding new tests for your libs 
 ## Usage example:
