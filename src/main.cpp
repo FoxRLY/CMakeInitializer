@@ -79,6 +79,7 @@ private:
             "else()\n"
             "    message(STATUS \"Doxygen not found - no docs will be generated\")\n"
             "endif()\n\n"
+            "set(LIBRARY_LIST \"\")\n\n"
             "add_subdirectory(src)\n"
             "add_subdirectory(app)\n"
             "add_subdirectory(test)\n"
@@ -149,6 +150,11 @@ private:
         const char* newlib =
             "if [[ \"${1,,}\" == \"newlib\" ]]\n"
             "then\n"
+            "    if [ -d ./include/${2} ] || [ -d ./src/${2} ]\n"
+            "    then\n"
+            "        echo 'Include or src directories already have similarly named library, aborting'\n"
+            "        exit\n"
+            "    fi;"
             "    mkdir ./include/${2}\n"
             "    echo '#pragma once' >> ./include/${2}/${2}.h\n"
             "    echo '' >> ./include/${2}/${2}.h\n"
@@ -162,7 +168,8 @@ private:
             "    echo 'file(GLOB_RECURSE SOURCE_FILES \"${CMAKE_SOURCE_DIR}/src/${LIB_NAME}/*%1%\")' >> ./src/${2}/CMakeLists.txt\n"
             "    echo 'add_library(${LIB_NAME} ${SOURCE_FILES} ${HEADER_FILES})' >> ./src/${2}/CMakeLists.txt\n"
             "    echo 'target_include_directories(${LIB_NAME} PUBLIC \"${CMAKE_SOURCE_DIR}/include\")' >> ./src/${2}/CMakeLists.txt\n"
-            "    echo 'Do not forget to add new library to target_link_library in app/CMakeLists.txt'\n"
+            "    echo 'list(APPEND LIBRARY_LIST ${LIB_NAME})' >> ./src/${2}/CMakeLists.txt\n"
+            "    echo 'set(LIBRARY_LIST ${LIBRARY_LIST} PARENT_SCOPE)' >> ./src/${2}/CMakeLists.txt\n"
             "    exit\n"
             "fi;\n\n";
         file << boost::format(newlib) % file_extension;
@@ -178,7 +185,7 @@ private:
         const char* test =
             "if [[ \"${1,,}\" == \"test\" ]]\n"
             "then\n"
-            "    cmake -B ./build/debug -DCMAKE_BUILD_TYPE=DEBUG -G Ninja && cmake --build ./build/debug --target test_exec && ctest --test-dir ./build/debug \"${@:2}\"\n"
+            "    cmake -B ./build/debug -DCMAKE_BUILD_TYPE=DEBUG -G Ninja && cmake --build ./build/debug --target test_exec && GTEST_COLOR=1 ctest --test-dir ./build/debug \"${@:2}\"\n"
             "    exit\n"
             "fi;\n\n";
         file << test;
@@ -235,7 +242,7 @@ private:
             "set(RELEASE_COMPILE_FLAGS \"${GENERAL_COMPILE_FLAGS};-O3\")\n"
             "target_compile_options(%1% PRIVATE \"$<$<CONFIG:DEBUG>:${DEBUG_COMPILE_FLAGS}>\")\n"
             "target_compile_options(%1% PRIVATE \"$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>\")\n"
-            "target_link_libraries(%1% PRIVATE example_lib)\n";
+            "target_link_libraries(%1% PRIVATE ${LIBRARY_LIST})\n";
         std::ofstream file;
         std::string file_name = project_name + "/app/CMakeLists.txt";
         file.open(file_name);
@@ -267,7 +274,8 @@ private:
             "    if(IS_DIRECTORY ${item})\n"
             "        add_subdirectory(${item})\n"
             "    endif()\n"
-            "endforeach()\n";
+            "endforeach()\n"
+            "set(LIBRARY_LIST ${LIBRARY_LIST} PARENT_SCOPE)\n";
         std::string file_name = project_name + "/src/CMakeLists.txt";
         std::ofstream file;
         file.open(file_name);
@@ -291,9 +299,11 @@ private:
         const char* contents = 
             "set(LIB_NAME example_lib)\n"
             "file(GLOB_RECURSE HEADER_FILES \"${CMAKE_SOURCE_DIR}/include/${LIB_NAME}/*.h\")\n"
-            "file(GLOB_RECURSE SOURCE_FILES \"${CMAKE_SOURCE_DIR}/src/${LIB_NAME}/*%1%\")\n\n"
+            "file(GLOB_RECURSE SOURCE_FILES \"${CMAKE_SOURCE_DIR}/src/${LIB_NAME}/*%1%\")\n"
             "add_library(${LIB_NAME} ${SOURCE_FILES} ${HEADER_FILES})\n"
-            "target_include_directories(${LIB_NAME} PUBLIC \"${CMAKE_SOURCE_DIR}/include\")\n";
+            "target_include_directories(${LIB_NAME} PUBLIC \"${CMAKE_SOURCE_DIR}/include\")\n"
+            "list(APPEND LIBRARY_LIST ${LIB_NAME})\n"
+            "set(LIBRARY_LIST ${LIBRARY_LIST} PARENT_SCOPE)\n";
         std::string file_name = project_name + "/src/example_lib/CMakeLists.txt";
         std::ofstream file;
         file.open(file_name);
@@ -340,7 +350,7 @@ private:
             "find_package(GTest REQUIRED)\n"
             "file(GLOB_RECURSE TEST_FILES \"./*.cpp\")\n"
             "add_executable(test_exec ${TEST_FILES})\n"
-            "target_link_libraries(test_exec PRIVATE GTest::gtest_main example_lib)\n"
+            "target_link_libraries(test_exec PRIVATE GTest::gtest_main ${LIBRARY_LIST})\n"
             "gtest_discover_tests(test_exec)\n";
         std::string file_name = project_name + "/test/CMakeLists.txt";
         std::ofstream file;
