@@ -34,6 +34,5 @@ Don't think so. Maybe very very later
 - Some foolproofing is intentionally omitted: you CAN generate cmake project with version ```BRUH``` and language standard ```19999```
 - To install program systemwide just build it and copy executable from build/release into your /bin folder (or be a mage and use cmake_install)
 ## Example projects:
-- C_PLACEHOLDER
-- CPP_PLACEHOLDER
+- https://github.com/FoxRLY/CMakeInitializerExampleProjects
 
