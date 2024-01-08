@@ -37,14 +37,13 @@ private:
     std::string project_name;
     std::string language;
     std::string file_extension;
-    boost::format common_format = boost::format("%1%/%2%");
     int standard;
 
     static options::options_description get_description() {
         options::options_description desc("CMake project initializer");
         desc.add_options()
             ("help,h", "Help")
-            ("version,v", options::value<std::string>()->default_value("3.0"), "Minimal CMake version")
+            ("version,v", options::value<std::string>()->default_value("3.27"), "Minimal CMake version")
             ("name,n", options::value<std::string>(), "Project name")
             ("language,l", options::value<std::string>()->default_value("cpp"), "Language (c or cpp)")
             ("standard,s", options::value<int>()->default_value(17), "Language standard");
@@ -52,83 +51,348 @@ private:
     }
     
     void create_folder_structure(){
-        auto folder_format = boost::format("%1%/%2%");
-        fs::create_directories((folder_format % project_name % "src").str());
-        fs::create_directories((folder_format % project_name % "include").str());
-        fs::create_directories((folder_format % project_name % "build").str());
-        fs::create_directories((folder_format % project_name % "build/release").str());
-        fs::create_directories((folder_format % project_name % "build/debug").str());
+        fs::create_directories(project_name + "/src");
+        fs::create_directories(project_name + "/include");
+        fs::create_directories(project_name + "/docs");
+        fs::create_directories(project_name + "/app");
+        fs::create_directories(project_name + "/test");
     }
 
-    void create_cmake_file(){
+    void create_root_cmake_file(){
         const char* cmake_file_contents = 
             "cmake_minimum_required(VERSION %1%)\n"
-            "project(%2%)\n"
+            "project(\n"
+            "    %2%\n"
+            "    VERSION 0.1\n"
+            "    DESCRIPTION \"project description\"\n"
+            "    LANGUAGES C CXX)\n\n"
             "set(CMAKE_%3%_STANDARD %4%)\n"
-            "set(CMAKE_%3%_FLAGS \"-Wall -Wextra\")\n"
-            "set(CMAKE_%3%_FLAGS_DEBUG \"-g\")\n"
-            "set(CMAKE_%3%_FLAGS_RELEASE \"-O3\")\n"
-            "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n\n"
-            "file(GLOB SOURCE_FILES ./src/*%5%)\n"
-            "file(GLOB HEADER_FILES ./include/*.h)\n"
+            "set(CMAKE_CXX_EXTENSIONS OFF)\n"
+            "set(CMAKE_C_EXTENSIONS OFF)\n"
+            "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n"
+            "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n\n"
+            "enable_testing()\n"
+            "include(GoogleTest)\n"
+            "find_package(Doxygen)\n"
+            "if(Doxygen_FOUND)\n"
+            "    add_subdirectory(docs)\n"
+            "else()\n"
+            "    message(STATUS \"Doxygen not found - no docs will be generated\")\n"
+            "endif()\n\n"
+            "add_subdirectory(src)\n"
+            "add_subdirectory(app)\n"
+            "add_subdirectory(test)\n"
             "file(CREATE_LINK\n"
-            "  \"${CMAKE_BINARY_DIR}/compile_commands.json\"\n"
-            "  \"${CMAKE_SOURCE_DIR}/compile_commands.json\"\n"
-            "  SYMBOLIC\n"
-            ")\n\n"
-            "add_executable(%2% ${SOURCE_FILES} ${HEADER_FILES})\n"
-            "target_include_directories(%2% PRIVATE ./include)\n";
-        std::string file_name = (common_format % project_name % "CMakeLists.txt").str();
+            "    \"${CMAKE_BINARY_DIR}/compile_commands.json\"\n"
+            "    \"${CMAKE_SOURCE_DIR}/compile_commands.json\"\n"
+            "    SYMBOLIC\n"
+            ")\n";
+        std::string file_name = project_name + "/CMakeLists.txt";
         std::ofstream cmake_file;
         cmake_file.open(file_name, std::ios::out | std::ios::trunc);
-        cmake_file << boost::format(cmake_file_contents) % cmake_version % project_name % language % standard % file_extension;
+        cmake_file << boost::format(cmake_file_contents) % cmake_version % project_name % language % standard;
         cmake_file.close();
     }
-
-    void create_run_file(){
-        const char* run_file_contents = 
+    
+    void create_manager_file(){
+        std::string file_name = project_name + "/cmake-pm";
+        std::ofstream file;
+        file.open(file_name);
+        
+        const char* header = 
             "#!/bin/bash\n"
-            "if [[ \"${1,,}\" == \"release\" ]] || [[ \"${1,,}\" == \"debug\" ]]\n"
+            "parent_path=$( cd \"$(dirname \"${BASH_SOURCE[0]}\")\" ; pwd -P )\n"
+            "cd \"$parent_path\"\n\n";
+        file << header;
+        
+        const char* help = 
+            "if [[ \"${1,,}\" == \"help\" ]]\n"
             "then\n"
-            "    cmake -B ./build/${1,,} -DCMAKE_BUILD_TYPE=${1^^} -G Ninja && ninja -C ./build/${1,,} && ./build/${1,,}/%1% \"${@:2}\"\n"
-            "else\n"
-            "    echo \"only release or debug\"\n"
-            "fi;";
-        std::string file_name = (boost::format("%1%/run.sh") % project_name).str();
-        std::ofstream run_file;
-        run_file.open(file_name, std::ios::out | std::ios::trunc);
-        run_file << boost::format(run_file_contents) % project_name;
-        run_file.close();
+            "    echo \"Project manager program:\"\n"
+            "    echo \"    help - list help\"\n"
+            "    echo \"    newlib {lib_name} - create new project library with name 'lib_name'\"\n"
+            "    echo \"    run {release/debug} - run project in release/debug mode\"\n"
+            "    echo \"    build {release/debug} - build project in release/debug mode\"\n"
+            "    echo \"    docs - build docs (will be located in build/debug/docs directory)\"\n"
+            "    echo \"    test - run tests (you can provide same arguments as if you were calling ctest)\"\n"
+            "    echo \"\"\n"
+            "    exit\n"
+            "fi;\n\n";
+        file << help;
+
+        const char* build =
+            "if [[ \"${1,,}\" == \"build\" ]]\n"
+            "then\n"
+            "    if [[ \"${2,,}\" == \"release\" ]] || [[ \"${2,,}\" == \"debug\" ]]\n"
+            "    then\n"
+            "        cmake -B ./build/${2,,} -DCMAKE_BUILD_TYPE=${2^^} -G Ninja && cmake --build build/${2,,}\n"
+            "    else\n"
+            "        echo 'Build avalable only in release and debug mode'\n"
+            "    fi;\n"
+            "    exit\n"
+            "fi;\n\n";
+        file << build;
+
+        const char* run =
+            "if [[ \"${1,,}\" == \"run\" ]]\n"
+            "then\n"
+            "    if [[ \"${2,,}\" == \"release\" ]] || [[ \"${2,,}\" == \"debug\" ]]\n"
+            "    then\n"
+            "        cmake -B ./build/${2,,} -DCMAKE_BUILD_TYPE=${2^^} -G Ninja && cmake --build build/${2,,} && ./build/${2,,}/app/%1% \"${@:3}\"\n"
+            "    else\n"
+            "        echo 'Run avalable only in release and debug mode'\n"
+            "    fi;\n"
+            "    exit\n"
+            "fi;\n\n";
+        file << boost::format(run) % project_name;
+
+        const char* newlib =
+            "if [[ \"${1,,}\" == \"newlib\" ]]\n"
+            "then\n"
+            "    mkdir ./include/${2}\n"
+            "    echo '#pragma once' >> ./include/${2}/${2}.h\n"
+            "    echo '' >> ./include/${2}/${2}.h\n"
+            "    echo 'int sum(int a, int b);' >> ./include/${2}/${2}.h\n"
+            "    mkdir ./src/${2}\n"
+            "    echo \"#include <${2}/${2}.h>\" >> ./src/${2}/${2}%1%\n"
+            "    echo '' >> ./src/${2}/${2}%1%\n"
+            "    echo 'int sum(int a, int b){ return a + b; }' >> ./src/${2}/${2}%1%\n"
+            "    echo \"set(LIB_NAME ${2})\" >> ./src/${2}/CMakeLists.txt\n"
+            "    echo 'file(GLOB_RECURSE HEADER_FILES \"${CMAKE_SOURCE_DIR}/include/${LIB_NAME}/*.h\")' >> ./src/${2}/CMakeLists.txt\n"
+            "    echo 'file(GLOB_RECURSE SOURCE_FILES \"${CMAKE_SOURCE_DIR}/src/${LIB_NAME}/*%1%\")' >> ./src/${2}/CMakeLists.txt\n"
+            "    echo 'add_library(${LIB_NAME} ${SOURCE_FILES} ${HEADER_FILES})' >> ./src/${2}/CMakeLists.txt\n"
+            "    echo 'target_include_directories(${LIB_NAME} PUBLIC \"${CMAKE_SOURCE_DIR}/include\")' >> ./src/${2}/CMakeLists.txt\n"
+            "    echo 'Do not forget to add new library to target_link_library in app/CMakeLists.txt'\n"
+            "    exit\n"
+            "fi;\n\n";
+        file << boost::format(newlib) % file_extension;
+        
+        const char* docs =
+            "if [[ \"${1,,}\" == \"docs\" ]]\n"
+            "then\n"
+            "    cmake -B ./build/debug -DCMAKE_BUILD_TYPE=DEBUG -G Ninja && cmake --build ./build/debug --target docs\n"
+            "    exit\n"
+            "fi;\n\n";
+        file << docs;
+
+        const char* test =
+            "if [[ \"${1,,}\" == \"test\" ]]\n"
+            "then\n"
+            "    cmake -B ./build/debug -DCMAKE_BUILD_TYPE=DEBUG -G Ninja && cmake --build ./build/debug --target test_exec && ctest --test-dir ./build/debug \"${@:2}\"\n"
+            "    exit\n"
+            "fi;\n\n";
+        file << test;
+
+        const char* help_default = 
+            "echo \"Project manager program:\"\n"
+            "echo \"    help - list help\"\n"
+            "echo \"    newlib {lib_name} - create new project library with name 'lib_name'\"\n"
+            "echo \"    run {release/debug} - run project in release/debug mode\"\n"
+            "echo \"    build {release/debug} - build project in release/debug mode\"\n"
+            "echo \"    docs - build docs (will be located in build/debug/docs directory)\"\n"
+            "echo \"    test - run tests (you can provide same arguments as if you were calling ctest)\"\n"
+            "echo \"\"\n";
+        file << help_default;
+
+        file.close();
         fs::permissions(file_name, fs::perms::owner_exec, fs::perm_options::add);
+
     }
 
-    void create_build_file(){
-        const char* build_file_contents = 
-            "#!/bin/bash\n"
-            "if [[ \"${1,,}\" == \"release\" ]] || [[ \"${1,,}\" == \"debug\" ]]\n"
-            "then\n"
-            "    cmake -B ./build/${1,,} -DCMAKE_BUILD_TYPE=${1^^} -G Ninja && ninja -C ./build/${1,,}\n"
-            "else\n"
-            "    echo \"only release or debug\"\n"
-            "fi;";
-        std::ofstream build_file;
-        std::string file_name = (boost::format("%1%/build.sh") % project_name).str();
-        build_file.open(file_name, std::ios::out | std::ios::trunc);
-        build_file << build_file_contents;
-        build_file.close();
-        fs::permissions(file_name, fs::perms::owner_exec, fs::perm_options::add);
-    }
-
-    void create_main_file(){
+    void create_app_file(){
+        if(file_extension == ".c"){
+            const char* main_file_contents = 
+                "#include <stdio.h>\n"
+                "#include <example_lib/example_lib.h>\n\n"
+                "int main(int argc, char* argv[]) {\n"
+                "    printf(\"%i\\n\", sum(10, 20));\n"
+                "}\n";
+            std::ofstream main_file;
+            std::string file_name = project_name + "/app/app" + file_extension;
+            main_file.open(file_name);
+            main_file << main_file_contents;
+            main_file.close();
+            return;
+        }
         const char* main_file_contents = 
+            "#include <iostream>\n"
+            "#include <example_lib/example_lib.h>\n\n"
             "int main(int argc, char* argv[]) {\n"
-            "    return 0;\n"
+            "    std::cout << sum(10, 20) << std::endl;\n"
             "}\n";
         std::ofstream main_file;
-        std::string file_name = (boost::format("%1%/src/%2%%3%") % project_name % "main" % file_extension).str();
+        std::string file_name = project_name + "/app/app" + file_extension;
         main_file.open(file_name);
         main_file << main_file_contents;
         main_file.close();
+    }
+    
+    void create_app_cmake_file(){
+        const char* contents =
+            "add_executable(%1% app%2%)\n"
+            "set(GENERAL_COMPILE_FLAGS \"-Wall;-Wextra\")\n"
+            "set(DEBUG_COMPILE_FLAGS \"${GENERAL_COMPILE_FLAGS};-g;-O0\")\n"
+            "set(RELEASE_COMPILE_FLAGS \"${GENERAL_COMPILE_FLAGS};-O3\")\n"
+            "target_compile_options(%1% PRIVATE \"$<$<CONFIG:DEBUG>:${DEBUG_COMPILE_FLAGS}>\")\n"
+            "target_compile_options(%1% PRIVATE \"$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>\")\n"
+            "target_link_libraries(%1% PRIVATE example_lib)\n";
+        std::ofstream file;
+        std::string file_name = project_name + "/app/CMakeLists.txt";
+        file.open(file_name);
+        file << boost::format(contents) % project_name % file_extension;
+        file.close();
+    }
+
+    void populate_app_folder(){
+        create_app_file();
+        create_app_cmake_file();
+    }
+
+    void populate_include_folder(){
+        fs::create_directories(project_name + "/include/example_lib");
+        const char* contents =
+            "#pragma once\n\n"
+            "int sum(int a, int b);\n";
+        std::string file_name = project_name + "/include/example_lib/example_lib.h";
+        std::ofstream file;
+        file.open(file_name);
+        file << contents;
+        file.close();
+    }
+    
+    void create_src_cmake_file(){
+        const char* contents = 
+            "file(GLOB V_GLOB LIST_DIRECTORIES true \"*\")\n"
+            "foreach(item ${V_GLOB})\n"
+            "    if(IS_DIRECTORY ${item})\n"
+            "        add_subdirectory(${item})\n"
+            "    endif()\n"
+            "endforeach()\n";
+        std::string file_name = project_name + "/src/CMakeLists.txt";
+        std::ofstream file;
+        file.open(file_name);
+        file << contents;
+        file.close();
+    }
+    
+    void create_src_example_lib(){
+        fs::create_directories(project_name + "/src/example_lib");
+        const char* contents = 
+            "#include <example_lib/example_lib.h>\n\n"
+            "int sum(int a, int b){ return a + b; }\n";
+        std::string file_name = project_name + "/src/example_lib/example_lib" + file_extension;
+        std::ofstream file;
+        file.open(file_name);
+        file << contents;
+        file.close();
+    }
+
+    void create_src_example_lib_cmake_file(){
+        const char* contents = 
+            "set(LIB_NAME example_lib)\n"
+            "file(GLOB_RECURSE HEADER_FILES \"${CMAKE_SOURCE_DIR}/include/${LIB_NAME}/*.h\")\n"
+            "file(GLOB_RECURSE SOURCE_FILES \"${CMAKE_SOURCE_DIR}/src/${LIB_NAME}/*%1%\")\n\n"
+            "add_library(${LIB_NAME} ${SOURCE_FILES} ${HEADER_FILES})\n"
+            "target_include_directories(${LIB_NAME} PUBLIC \"${CMAKE_SOURCE_DIR}/include\")\n";
+        std::string file_name = project_name + "/src/example_lib/CMakeLists.txt";
+        std::ofstream file;
+        file.open(file_name);
+        file << boost::format(contents) % file_extension;
+        file.close();
+    }
+
+    void populate_src_folder(){
+        create_src_cmake_file();
+        create_src_example_lib();
+        create_src_example_lib_cmake_file();
+    }
+    
+    void create_docs_cmake_file(){
+        const char* contents =
+            "set(DOXYGEN_EXTRACT_ALL YES)\n"
+            "set(DOXYGEN_BUILTIN_STL_SUPPORT YES)\n\n"
+            "doxygen_add_docs(docs \"${CMAKE_SOURCE_DIR}\")\n";
+        std::string file_name = project_name + "/docs/CMakeLists.txt";
+        std::ofstream file;
+        file.open(file_name);
+        file << contents;
+        file.close();
+    }
+
+    void create_docs_mainpage_file(){
+        const char* contents = 
+            "# Documentation for %1% project {#mainpage}\n\n"
+            "This is the docs for your project\n";
+        std::string file_name = project_name + "/docs/mainpage.md";
+        std::ofstream file;
+        file.open(file_name);
+        file << boost::format(contents) % project_name;
+        file.close();
+    }
+
+    void populate_docs_folder(){
+        create_docs_cmake_file();
+        create_docs_mainpage_file();
+    }
+    
+    void create_test_cmake_file(){
+        const char* contents = 
+            "find_package(GTest REQUIRED)\n"
+            "file(GLOB_RECURSE TEST_FILES \"./*.cpp\")\n"
+            "add_executable(test_exec ${TEST_FILES})\n"
+            "target_link_libraries(test_exec PRIVATE GTest::gtest_main example_lib)\n"
+            "gtest_discover_tests(test_exec)\n";
+        std::string file_name = project_name + "/test/CMakeLists.txt";
+        std::ofstream file;
+        file.open(file_name);
+        file << contents;
+        file.close();
+    }
+
+    void create_test_main_file(){
+        const char* contents =
+            "#include <gtest/gtest.h>\n\n"
+            "int main(int argc, char** argv){\n"
+            "    ::testing::InitGoogleTest(&argc, argv);\n"
+            "    return RUN_ALL_TESTS();\n"
+            "}\n";
+        std::string file_name = project_name + "/test/main.cpp";
+        std::ofstream file;
+        file.open(file_name);
+        file << contents;
+        file.close();
+    }
+
+    void create_test_example_file(){
+        if(file_extension == ".c"){
+            const char* contents =
+                "#include <gtest/gtest.h>\n"
+                "extern \"C\"{\n"
+                "    #include <example_lib/example_lib.h>\n"
+                "}\n\n"
+                "TEST(ExampleTests, TestFive_Five){ ASSERT_EQ(10, sum(5, 5)); }\n";
+            std::string file_name = project_name + "/test/exampletest.cpp";
+            std::ofstream file;
+            file.open(file_name);
+            file << contents;
+            file.close();
+            return;
+        }
+        const char* contents =
+            "#include <gtest/gtest.h>\n"
+            "#include <example_lib/example_lib.h>\n\n"
+            "TEST(ExampleTests, TestFive_Five){ ASSERT_EQ(10, sum(5, 5)); }\n";
+        std::string file_name = project_name + "/test/exampletest.cpp";
+        std::ofstream file;
+        file.open(file_name);
+        file << contents;
+        file.close();
+    }
+
+    void populate_test_folder(){
+        create_test_cmake_file();
+        create_test_main_file();
+        create_test_example_file();
     }
 
 public:
@@ -168,10 +432,13 @@ public:
     };
     void initialize() {
         create_folder_structure();
-        create_cmake_file();
-        create_run_file();
-        create_build_file();
-        create_main_file();
+        create_root_cmake_file();
+        create_manager_file();
+        populate_app_folder();
+        populate_include_folder();
+        populate_src_folder();
+        populate_docs_folder();
+        populate_test_folder();
         const char* result_output_format = 
             "Project creation successfull:\n"
             "Project name: %1%\n"
@@ -190,7 +457,8 @@ int main(int argc, char *argv[]) {
         return 1;
     } catch (ExitSignal &e) {
         return 0;
-    } catch (std::exception &e) {
+    }
+    catch (std::exception &e) {
         std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
