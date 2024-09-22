@@ -95,7 +95,7 @@ private:
         cmake_file.close();
     }
 
-    void create_manager_file() {
+    void create_root_manager_file() {
         std::string file_name = project_name + "/cmake-pm";
         std::ofstream file;
         file.open(file_name);
@@ -198,7 +198,24 @@ private:
 
         file.close();
         fs::permissions(file_name, fs::perms::owner_exec, fs::perm_options::add);
+    }
 
+    void create_root_gitignore_file() {
+        std::string file_name = project_name + "/.gitignore";
+        std::ofstream file;
+        file.open(file_name);
+        const char* ignore = 
+            "/build\n"
+            "/.cache\n"
+            "compile_commands.json\n";
+        file << ignore;
+        file.close();
+    }
+
+    void populate_root_folder() {
+        create_root_manager_file();
+        create_root_cmake_file();
+        create_root_gitignore_file();
     }
 
     void create_app_file() {
@@ -435,10 +452,10 @@ public:
             throw LogicException("project name must be specified");
         }
     };
+
     void initialize() {
         create_folder_structure();
-        create_root_cmake_file();
-        create_manager_file();
+        populate_root_folder();
         populate_app_folder();
         populate_include_folder();
         populate_src_folder();
