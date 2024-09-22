@@ -49,8 +49,8 @@ private:
             ("standard,s", options::value<int>()->default_value(17), "Language standard");
         return desc;
     }
-    
-    void create_folder_structure(){
+
+    void create_folder_structure() {
         fs::create_directories(project_name + "/src");
         fs::create_directories(project_name + "/include");
         fs::create_directories(project_name + "/docs");
@@ -58,12 +58,12 @@ private:
         fs::create_directories(project_name + "/test");
     }
 
-    void create_root_cmake_file(){
+    void create_root_cmake_file() {
         const char* cmake_file_contents = 
             "cmake_minimum_required(VERSION %1%)\n"
             "project(\n"
             "    %2%\n"
-            "    VERSION 0.1\n"
+            "    VERSION 0.1.0\n"
             "    DESCRIPTION \"project description\"\n"
             "    LANGUAGES C CXX)\n\n"
             "set(CMAKE_%3%_STANDARD %4%)\n"
@@ -94,18 +94,19 @@ private:
         cmake_file << boost::format(cmake_file_contents) % cmake_version % project_name % language % standard;
         cmake_file.close();
     }
-    
-    void create_manager_file(){
+
+    void create_manager_file() {
         std::string file_name = project_name + "/cmake-pm";
         std::ofstream file;
         file.open(file_name);
-        
+
         const char* header = 
             "#!/bin/bash\n"
+            "project_name=%1%\n"
             "parent_path=$( cd \"$(dirname \"${BASH_SOURCE[0]}\")\" ; pwd -P )\n"
             "cd \"$parent_path\"\n\n";
-        file << header;
-        
+        file << boost::format(header) % project_name;
+
         const char* help = 
             "if [[ \"${1,,}\" == \"help\" ]]\n"
             "then\n"
@@ -139,13 +140,13 @@ private:
             "then\n"
             "    if [[ \"${2,,}\" == \"release\" ]] || [[ \"${2,,}\" == \"debug\" ]]\n"
             "    then\n"
-            "        cmake -B ./build/${2,,} -DCMAKE_BUILD_TYPE=${2^^} -G Ninja && cmake --build build/${2,,} && ./build/${2,,}/app/%1% \"${@:3}\"\n"
+            "        cmake -B ./build/${2,,} -DCMAKE_BUILD_TYPE=${2^^} -G Ninja && cmake --build build/${2,,} && ./build/${2,,}/app/${project_name} \"${@:3}\"\n"
             "    else\n"
             "        echo 'Run avalable only in release and debug mode'\n"
             "    fi;\n"
             "    exit\n"
             "fi;\n\n";
-        file << boost::format(run) % project_name;
+        file << run;
 
         const char* newlib =
             "if [[ \"${1,,}\" == \"newlib\" ]]\n"
@@ -173,7 +174,7 @@ private:
             "    exit\n"
             "fi;\n\n";
         file << boost::format(newlib) % file_extension;
-        
+
         const char* docs =
             "if [[ \"${1,,}\" == \"docs\" ]]\n"
             "then\n"
@@ -206,8 +207,8 @@ private:
 
     }
 
-    void create_app_file(){
-        if(file_extension == ".c"){
+    void create_app_file() {
+        if(file_extension == ".c") {
             const char* main_file_contents = 
                 "#include <stdio.h>\n"
                 "#include <example_lib/example_lib.h>\n\n"
@@ -233,16 +234,16 @@ private:
         main_file << main_file_contents;
         main_file.close();
     }
-    
-    void create_app_cmake_file(){
+
+    void create_app_cmake_file() {
         const char* contents =
-            "add_executable(%1% app%2%)\n"
+            "add_executable(${CMAKE_PROJECT_NAME} app%2%)\n"
             "set(GENERAL_COMPILE_FLAGS \"-Wall;-Wextra\")\n"
             "set(DEBUG_COMPILE_FLAGS \"${GENERAL_COMPILE_FLAGS};-g;-O0\")\n"
             "set(RELEASE_COMPILE_FLAGS \"${GENERAL_COMPILE_FLAGS};-O3\")\n"
-            "target_compile_options(%1% PRIVATE \"$<$<CONFIG:DEBUG>:${DEBUG_COMPILE_FLAGS}>\")\n"
-            "target_compile_options(%1% PRIVATE \"$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>\")\n"
-            "target_link_libraries(%1% PRIVATE ${LIBRARY_LIST})\n";
+            "target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE \"$<$<CONFIG:DEBUG>:${DEBUG_COMPILE_FLAGS}>\")\n"
+            "target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE \"$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>\")\n"
+            "target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE ${LIBRARY_LIST})\n";
         std::ofstream file;
         std::string file_name = project_name + "/app/CMakeLists.txt";
         file.open(file_name);
@@ -250,12 +251,12 @@ private:
         file.close();
     }
 
-    void populate_app_folder(){
+    void populate_app_folder() {
         create_app_file();
         create_app_cmake_file();
     }
 
-    void populate_include_folder(){
+    void populate_include_folder() {
         fs::create_directories(project_name + "/include/example_lib");
         const char* contents =
             "#pragma once\n\n"
@@ -266,8 +267,8 @@ private:
         file << contents;
         file.close();
     }
-    
-    void create_src_cmake_file(){
+
+    void create_src_cmake_file() {
         const char* contents = 
             "file(GLOB V_GLOB LIST_DIRECTORIES true \"*\")\n"
             "foreach(item ${V_GLOB})\n"
@@ -282,8 +283,8 @@ private:
         file << contents;
         file.close();
     }
-    
-    void create_src_example_lib(){
+
+    void create_src_example_lib() {
         fs::create_directories(project_name + "/src/example_lib");
         const char* contents = 
             "#include <example_lib/example_lib.h>\n\n"
@@ -295,7 +296,7 @@ private:
         file.close();
     }
 
-    void create_src_example_lib_cmake_file(){
+    void create_src_example_lib_cmake_file() {
         const char* contents = 
             "set(LIB_NAME example_lib)\n"
             "file(GLOB_RECURSE HEADER_FILES \"${CMAKE_SOURCE_DIR}/include/${LIB_NAME}/*.h\")\n"
@@ -311,13 +312,13 @@ private:
         file.close();
     }
 
-    void populate_src_folder(){
+    void populate_src_folder() {
         create_src_cmake_file();
         create_src_example_lib();
         create_src_example_lib_cmake_file();
     }
-    
-    void create_docs_cmake_file(){
+
+    void create_docs_cmake_file() {
         const char* contents =
             "set(DOXYGEN_EXTRACT_ALL YES)\n"
             "set(DOXYGEN_BUILTIN_STL_SUPPORT YES)\n\n"
@@ -329,7 +330,7 @@ private:
         file.close();
     }
 
-    void create_docs_mainpage_file(){
+    void create_docs_mainpage_file() {
         const char* contents = 
             "# Documentation for %1% project {#mainpage}\n\n"
             "This is the docs for your project\n";
@@ -340,12 +341,12 @@ private:
         file.close();
     }
 
-    void populate_docs_folder(){
+    void populate_docs_folder() {
         create_docs_cmake_file();
         create_docs_mainpage_file();
     }
-    
-    void create_test_cmake_file(){
+
+    void create_test_cmake_file() {
         const char* contents = 
             "find_package(GTest REQUIRED)\n"
             "file(GLOB_RECURSE TEST_FILES \"./*.cpp\")\n"
@@ -359,7 +360,7 @@ private:
         file.close();
     }
 
-    void create_test_main_file(){
+    void create_test_main_file() {
         const char* contents =
             "#include <gtest/gtest.h>\n\n"
             "int main(int argc, char** argv){\n"
@@ -373,8 +374,8 @@ private:
         file.close();
     }
 
-    void create_test_example_file(){
-        if(file_extension == ".c"){
+    void create_test_example_file() {
+        if(file_extension == ".c") {
             const char* contents =
                 "#include <gtest/gtest.h>\n"
                 "extern \"C\"{\n"
@@ -399,7 +400,7 @@ private:
         file.close();
     }
 
-    void populate_test_folder(){
+    void populate_test_folder() {
         create_test_cmake_file();
         create_test_main_file();
         create_test_example_file();
@@ -418,10 +419,10 @@ public:
         if (map.count("version")) {
             cmake_version = map["version"].as<std::string>();
         }
-        if (map.count("language")){
+        if (map.count("language")) {
             std::string language_input = map["language"].as<std::string>();
             boost::to_lower(language_input);
-            if (language_input == "c"){
+            if (language_input == "c") {
                 language = "C";
                 file_extension = ".c";
             } else if (language_input == "cpp" || language_input == "c++") {
@@ -431,7 +432,7 @@ public:
                 throw LogicException("language must be specified as c/cpp/c++");
             }
         }
-        if (map.count("standard")){
+        if (map.count("standard")) {
             standard = map["standard"].as<int>();
         }
         if (map.count("name")) {
