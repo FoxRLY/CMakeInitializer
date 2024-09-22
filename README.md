@@ -23,6 +23,21 @@ Yes, reqs are a bit high, but I didn't test it on anything else
 - Conan / VCpackage integration
 - Python script extensions for main cmake-pm script
 - ???
+## Initializer command overview
+CMake project initializer:
+  -h [ --help ]                Help
+  -v [ --version ] arg (=3.27) Minimal CMake version
+  -n [ --name ] arg            Project name
+  -l [ --language ] arg (=cpp) Language (c or cpp)
+  -s [ --standard ] arg (=17)  Language standard
+## Project manager command overview
+Project manager program:
+    newlib {lib_name}     - create new project library with name 'lib_name'
+    run {release/debug}   - run project in release/debug mode
+    build {release/debug} - build project in release/debug mode
+    docs                  - build docs (will be located in build/debug/docs directory)
+    test                  - run tests (you can provide same arguments as if you were calling ctest)
+    clear                 - clear build directory
 ## Usage example:
 1) ```cmake-init -v 3.27 -l cpp -n my-project```
 2) ```cd my-project```

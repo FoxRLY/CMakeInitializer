@@ -107,21 +107,6 @@ private:
             "cd \"$parent_path\"\n\n";
         file << boost::format(header) % project_name;
 
-        const char* help = 
-            "if [[ \"${1,,}\" == \"help\" ]]\n"
-            "then\n"
-            "    echo \"Project manager program:\"\n"
-            "    echo \"    help - list help\"\n"
-            "    echo \"    newlib {lib_name} - create new project library with name 'lib_name'\"\n"
-            "    echo \"    run {release/debug} - run project in release/debug mode\"\n"
-            "    echo \"    build {release/debug} - build project in release/debug mode\"\n"
-            "    echo \"    docs - build docs (will be located in build/debug/docs directory)\"\n"
-            "    echo \"    test - run tests (you can provide same arguments as if you were calling ctest)\"\n"
-            "    echo \"\"\n"
-            "    exit\n"
-            "fi;\n\n";
-        file << help;
-
         const char* build =
             "if [[ \"${1,,}\" == \"build\" ]]\n"
             "then\n"
@@ -171,6 +156,7 @@ private:
             "    echo 'target_include_directories(${LIB_NAME} PUBLIC \"${CMAKE_SOURCE_DIR}/include\")' >> ./src/${2}/CMakeLists.txt\n"
             "    echo 'list(APPEND LIBRARY_LIST ${LIB_NAME})' >> ./src/${2}/CMakeLists.txt\n"
             "    echo 'set(LIBRARY_LIST ${LIBRARY_LIST} PARENT_SCOPE)' >> ./src/${2}/CMakeLists.txt\n"
+            "    echo \"Generated new library ${2}\"\n"
             "    exit\n"
             "fi;\n\n";
         file << boost::format(newlib) % file_extension;
@@ -191,16 +177,24 @@ private:
             "fi;\n\n";
         file << test;
 
-        const char* help_default = 
+        const char* clear = 
+            "if [[ \"#{1,,}\" == \"clear\" ]]\n"
+            "then\n"
+            "    rm -rf ./build\n"
+            "    echo \"Cleared build directory\"\n"
+            "    exit\n"
+            "fi;\n\n";
+        file << clear;
+
+        const char* help = 
             "echo \"Project manager program:\"\n"
-            "echo \"    help - list help\"\n"
-            "echo \"    newlib {lib_name} - create new project library with name 'lib_name'\"\n"
-            "echo \"    run {release/debug} - run project in release/debug mode\"\n"
+            "echo \"    newlib {lib_name}     - create new project library with name 'lib_name'\"\n"
+            "echo \"    run {release/debug}   - run project in release/debug mode\"\n"
             "echo \"    build {release/debug} - build project in release/debug mode\"\n"
-            "echo \"    docs - build docs (will be located in build/debug/docs directory)\"\n"
-            "echo \"    test - run tests (you can provide same arguments as if you were calling ctest)\"\n"
-            "echo \"\"\n";
-        file << help_default;
+            "echo \"    docs                  - build docs (will be located in build/debug/docs directory)\"\n"
+            "echo \"    test                  - run tests (you can provide same arguments as if you were calling ctest)\"\n"
+            "echo \"    clear                 - clear build directory\"\n\n";
+        file << help;
 
         file.close();
         fs::permissions(file_name, fs::perms::owner_exec, fs::perm_options::add);
