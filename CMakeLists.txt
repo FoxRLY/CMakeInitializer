@@ -14,8 +14,16 @@ file(CREATE_LINK
   SYMBOLIC
 )
 
+include(./cpm/CPM.cmake)
+
+CPMAddPackage(
+  NAME Boost
+  VERSION 1.83.0
+  URL https://github.com/boostorg/boost/releases/download/boost-1.83.0/boost-1.83.0.tar.xz
+  OPTIONS "BOOST_ENABLE_CMAKE ON" "BOOST_INCLUDE_LIBRARIES program_options"
+)
+
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.83 COMPONENTS program_options REQUIRED)
 
 add_executable(cmake-init ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(cmake-init PRIVATE ./include)
