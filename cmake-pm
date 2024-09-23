@@ -1,5 +1,5 @@
 #!/bin/bash
-project_name=example_project
+project_name=cmake-init
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
@@ -62,7 +62,7 @@ then
     exit
 fi;
 
-if [[ "#{1,,}" == "clear" ]]
+if [[ "${1,,}" == "clear" ]]
 then
     rm -rf ./build
     echo "Cleared build directory"

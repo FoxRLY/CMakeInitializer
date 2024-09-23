@@ -1,18 +1,24 @@
 cmake_minimum_required(VERSION 3.27)
-project(cmake-init)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+project(
+    cmake-init
+    VERSION 0.1.0
+    DESCRIPTION "project description"
+    LANGUAGES C CXX)
 
-file(GLOB SOURCE_FILES ./src/*.cpp)
-file(GLOB HEADER_FILES ./include/*.h)
-file(CREATE_LINK
-  "${CMAKE_BINARY_DIR}/compile_commands.json"
-  "${CMAKE_SOURCE_DIR}/compile_commands.json"
-  SYMBOLIC
-)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+enable_testing()
+include(GoogleTest)
+find_package(Doxygen)
+if(Doxygen_FOUND)
+    add_subdirectory(docs)
+else()
+    message(STATUS "Doxygen not found - no docs will be generated")
+endif()
 
 include(./cpm/CPM.cmake)
 
@@ -25,8 +31,13 @@ CPMAddPackage(
 
 set(Boost_USE_STATIC_LIBS ON)
 
-add_executable(cmake-init ${SOURCE_FILES} ${HEADER_FILES})
-target_include_directories(cmake-init PRIVATE ./include)
+set(LIBRARY_LIST "")
 
-set(CMAKE_EXE_LINKER_FLAGS " -static")
-target_link_libraries(cmake-init Boost::program_options -static-libgcc -static-libstdc++)
+add_subdirectory(src)
+add_subdirectory(app)
+add_subdirectory(test)
+file(CREATE_LINK
+    "${CMAKE_BINARY_DIR}/compile_commands.json"
+    "${CMAKE_SOURCE_DIR}/compile_commands.json"
+    SYMBOLIC
+)
