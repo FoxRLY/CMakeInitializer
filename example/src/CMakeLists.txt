@@ -1,0 +1,7 @@
+file(GLOB V_GLOB LIST_DIRECTORIES true "*")
+foreach(item ${V_GLOB})
+    if(IS_DIRECTORY ${item})
+        add_subdirectory(${item})
+    endif()
+endforeach()
+set(LIBRARY_LIST ${LIBRARY_LIST} PARENT_SCOPE)
