@@ -15,14 +15,17 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 enable_testing()
 include(GoogleTest)
+
 find_package(Doxygen)
 if(Doxygen_FOUND)
     add_subdirectory(docs)
 else()
     message(STATUS "Doxygen not found - no docs will be generated")
 endif()
+
 set(LIBRARY_LIST "")
 add_subdirectory(src)
 add_subdirectory(app)
@@ -90,6 +93,12 @@ fi;
 if [[ "${1,,}" == "docs" ]]
 then
     cmake -B ./build/debug -DCMAKE_BUILD_TYPE=DEBUG -G Ninja && cmake --build ./build/debug --target docs
+    exit
+fi;
+
+if [[ "${1,,}" == "test" ]]
+then
+    cmake -B ./build/debug -DCMAKE_BUILD_TYPE=DEBUG -G Ninja && cmake --build ./build/debug --target test_exec && GTEST_COLOR=1 ctest --test-dir ./build/debug "${@:2}"
     exit
 fi;
 
