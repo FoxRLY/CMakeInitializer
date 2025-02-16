@@ -17,6 +17,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 include(./cpm/CPM.cmake)
+set(CPM_SOURCE_CACHE ~/.cache/CPM)
 
 set(LIBRARY_LIST "")
 
