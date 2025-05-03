@@ -2,12 +2,11 @@
 Creates CMake project for C or CPP with modern structure and neat project manager bash script
 ## Requirements:
 - Linux
-- Boost   v1.83   >= 
 - CMake   v3.27   >=
 - Ninja   v1.11.1 >=
 - GTest   v1.11   >=
 - Doxygen v1.9.8  >= (optional)<br>
-Yes, reqs are a bit high, but I didn't test it on anything else
+Requirements are a bit high, but reasonable
 ## Initializer command overview
 ```
 CMake project initializer:
@@ -15,7 +14,7 @@ CMake project initializer:
   -v [ --version ] arg (=3.27) Minimal CMake version
   -n [ --name ] arg            Project name
   -l [ --language ] arg (=cpp) Language (c or cpp)
-  -s [ --standard ] arg (=17)  Language standard
+  -s [ --standard ] arg (=20)  Language standard
 ```
 ## Project manager command overview
 ```
@@ -32,21 +31,24 @@ Project manager program:
 2) ```cd my-project```
 3) ```./cmake-pm run debug```
 ## Features:
-- Fully featured CLI tool written in C++ with Boost (blazingly fast)
+- Cool CLI tool written in C++ with Boost (blazingly fast)
 - Symlinking of ```compile_commands.json``` file in project root for easier clangd LSP header locating (Neovim users will appreciate)
-- Common project structure with ```app```, ```src```, ```include``` and ```test``` directories. No need to specify new files in ```CMakeLists.txt``` as ```GLOB_RECURSE``` is used (Opinionated, but at least works)
-- Project manager script (run without arguments to see help)
-- Autodetection of project libraries (removes error-prone process of adding or removing library targets from `target_link_library` calls)
+- Common project structure with ```app```, ```src```, ```include``` and ```test``` directories
+- Project manager script (build, run and test from one spot like ```gradle```)
+- Autodetection of new files and libraries
 - Docs for your project with Doxygen (outdated css style my beloved)
-- Tests and ease of adding new tests for your libs 
-## Planned features:
-- CPM integration
+- Tests out of the box (provided you have gtest)
+- Integration with CPM (robust way of adding external libraries)
+## Planned features/fixes:
+- Better git integration
+- Better usage of CMake (remove glob/recurse, maybe more relaxed way of creating libraries)
+- Installation for libraries and executables through manager script
+- Publication with versions through manager script
 ## Distant future:
 - Option to switch testing frameworks
-- Python script extensions for main cmake-pm script
 - ???
 ## FAQ:
-### Can you generate projects for shared or header-only libraries?
+### Can you generate projects for shared libraries?
 No. But I don't see any obstacles in configuring generated project for your needs by yourself
 ### Is it IDE friendly?
 Almost certainly not. Creating new libraries is made through bash script - good luck configuring CLion to use it.<br>
@@ -61,5 +63,4 @@ Don't think so. Maybe very very later and with the help of Powershell wizard
 - Some foolproofing is baked into program: you CANNOT create project without name, with incorrect language or run and build anything but release and debug versions
 - Some foolproofing is intentionally omitted: you CAN generate cmake project with version ```BRUH``` and language standard ```19999```
 - To install program systemwide just build it (run ./build.sh release) and copy executable from build/release into your /bin folder (or be a mage and use cmake_install)
-- Git repo initialization is intentionally not implemented (why don't you `git init` it yourself by that point?) but gitignore is there for you
 
