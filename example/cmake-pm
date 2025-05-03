@@ -7,7 +7,7 @@ if [[ "${1,,}" == "build" ]]
 then
     if [[ "${2,,}" == "release" ]] || [[ "${2,,}" == "debug" ]]
     then
-        cmake -B ./build/${2,,} -DCMAKE_BUILD_TYPE=${2^^} -G Ninja && cmake --build build/${2,,}
+        cmake -B ./.build/${2,,} -DCMAKE_BUILD_TYPE=${2^^} -G Ninja && cmake --build ./.build/${2,,}
     else
         echo 'Build avalable only in release and debug mode'
     fi;
@@ -18,7 +18,7 @@ if [[ "${1,,}" == "run" ]]
 then
     if [[ "${2,,}" == "release" ]] || [[ "${2,,}" == "debug" ]]
     then
-        cmake -B ./build/${2,,} -DCMAKE_BUILD_TYPE=${2^^} -G Ninja && cmake --build build/${2,,} && ./build/${2,,}/app/${project_name} "${@:3}"
+        cmake -B ./.build/${2,,} -DCMAKE_BUILD_TYPE=${2^^} -G Ninja && cmake --build ./.build/${2,,} && ./.build/${2,,}/app/${project_name}-app "${@:3}"
     else
         echo 'Run avalable only in release and debug mode'
     fi;
@@ -41,10 +41,11 @@ then
     echo '' >> ./src/${2}/${2}.cpp
     echo 'int sum(int a, int b){ return a + b; }' >> ./src/${2}/${2}.cpp
     echo "set(LIB_NAME ${2})" >> ./src/${2}/CMakeLists.txt
-    echo 'file(GLOB_RECURSE HEADER_FILES "${CMAKE_SOURCE_DIR}/include/${LIB_NAME}/*.h")' >> ./src/${2}/CMakeLists.txt
-    echo 'file(GLOB_RECURSE SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/${LIB_NAME}/*.cpp")' >> ./src/${2}/CMakeLists.txt
+    echo 'file(GLOB_RECURSE HEADER_FILES "${PROJECT_SOURCE_DIR}/include/${LIB_NAME}/*.h")' >> ./src/${2}/CMakeLists.txt
+    echo 'file(GLOB_RECURSE SOURCE_FILES "${PROJECT_SOURCE_DIR}/src/${LIB_NAME}/*.cpp")' >> ./src/${2}/CMakeLists.txt
     echo 'add_library(${LIB_NAME} ${SOURCE_FILES} ${HEADER_FILES})' >> ./src/${2}/CMakeLists.txt
-    echo 'target_include_directories(${LIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/include")' >> ./src/${2}/CMakeLists.txt
+    echo 'target_include_directories(${LIB_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/include")' >> ./src/${2}/CMakeLists.txt
+    echo 'set_target_properties(${LIB_NAME} PROPERTIES LINKER_LANGUAGE ${PROJECT_LANGUAGE})' >> ./src/${2}/CMakeLists.txt
     echo 'list(APPEND LIBRARY_LIST ${LIB_NAME})' >> ./src/${2}/CMakeLists.txt
     echo 'set(LIBRARY_LIST ${LIBRARY_LIST} PARENT_SCOPE)' >> ./src/${2}/CMakeLists.txt
     echo "Generated new library ${2}"
@@ -53,13 +54,19 @@ fi;
 
 if [[ "${1,,}" == "docs" ]]
 then
-    cmake -B ./build/debug -DCMAKE_BUILD_TYPE=DEBUG -G Ninja && cmake --build ./build/debug --target docs
+    cmake -B ./.build/debug -DCMAKE_BUILD_TYPE=DEBUG -G Ninja && cmake --build ./.build/debug --target docs
+    exit
+fi;
+
+if [[ "${1,,}" == "test" ]]
+then
+    cmake -B ./.build/debug -DCMAKE_BUILD_TYPE=DEBUG -G Ninja && cmake --build ./.build/debug --target test_exec && GTEST_COLOR=1 ctest --test-dir ./.build/debug "${@:2}"
     exit
 fi;
 
 if [[ "${1,,}" == "clear" ]]
 then
-    rm -rf ./build
+    rm -rf ./.build
     echo 'Cleared build directory'
     exit
 fi;

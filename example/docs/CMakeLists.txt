@@ -1,3 +1,3 @@
 set(DOXYGEN_EXTRACT_ALL YES)
 set(DOXYGEN_BUILTIN_STL_SUPPORT YES)
-doxygen_add_docs(docs "${CMAKE_SOURCE_DIR}")
+doxygen_add_docs(docs "${PROJECT_SOURCE_DIR}")

@@ -21,17 +21,20 @@ else()
 endif()
 
 include(./cpm/CPM.cmake)
+set(CPM_SOURCE_CACHE ~/.cache/CPM)
+
+set(BOOST_INCLUDE_LIBRARIES "program_options;format;algorithm")
 
 CPMAddPackage(
   NAME Boost
   VERSION 1.83.0
   URL https://github.com/boostorg/boost/releases/download/boost-1.83.0/boost-1.83.0.tar.xz
-  OPTIONS "BOOST_ENABLE_CMAKE ON" "BOOST_INCLUDE_LIBRARIES program_options"
+  OPTIONS "BOOST_ENABLE_CMAKE ON"
 )
 
 set(Boost_USE_STATIC_LIBS ON)
 
-set(LIBRARY_LIST "")
+set(LIBRARY_LIST Boost::program_options Boost::format Boost::algorithm)
 
 add_subdirectory(src)
 add_subdirectory(app)

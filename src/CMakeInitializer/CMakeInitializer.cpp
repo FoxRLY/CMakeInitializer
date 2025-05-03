@@ -1,4 +1,3 @@
-#include <boost/format/format_fwd.hpp>
 #include <fstream>
 #include <iostream>
 #include <filesystem>
@@ -74,7 +73,7 @@ static options::options_description get_description() {
         ("version,v", options::value<std::string>()->default_value("3.27"), "Minimal CMake version")
         ("name,n", options::value<std::string>(), "Project name")
         ("language,l", options::value<std::string>()->default_value("cpp"), "Language (c or cpp)")
-        ("standard,s", options::value<int>()->default_value(17), "Language standard");
+        ("standard,s", options::value<int>()->default_value(20), "Language standard");
     return desc;
 }
 
