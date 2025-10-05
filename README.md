@@ -2,10 +2,11 @@
 Creates CMake project for C or CPP with modern structure and neat project manager bash script
 ## Requirements:
 - Linux
-- CMake   v3.27   >=
-- Ninja   v1.11.1 >=
-- GTest   v1.11   >= (optional)
-- Doxygen v1.9.8  >= (optional)<br>
+- CMake    v3.27     >=
+- Ninja    v1.11.1   >=
+- GTest    v1.11     >= (optional)
+- Doxygen  v1.9.8    >= (optional)
+- GraphViz v2.42.4-3 >= (optional)<br>
 Requirements are a bit high, but reasonable
 ## Initializer command overview
 ```
@@ -34,11 +35,12 @@ Project manager program:
 - Cool CLI tool written in C++ with Boost (blazingly fast)
 - Symlinking of ```compile_commands.json``` file in project root for easier clangd LSP header locating (Neovim users will appreciate)
 - Common project structure with ```app```, ```src```, ```include``` and ```test``` directories
-- Project manager script (build, run and test from one spot like ```gradle```)
+- Project manager script (build, run and test from one spot like if you were using ```gradle```)
 - Autodetection of new files and libraries
 - Docs for your project with Doxygen (outdated css style my beloved)
 - Tests out of the box (provided you have gtest)
 - Integration with CPM (robust way of adding external libraries)
+- GraphViz integration for dependency graph generation
 ## Planned features/fixes:
 - Better git integration
 - Better usage of CMake (remove glob/recurse, maybe more relaxed way of creating libraries)

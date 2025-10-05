@@ -16,7 +16,7 @@ private:
     void populate_src_folder();
     void populate_docs_folder();
     void populate_test_folder();
-    void populate_cpm_folder();
+    void populate_scripts_folder();
 public:
     CMakeInitializer(int arcg, char* argv[]);
     void initialize();

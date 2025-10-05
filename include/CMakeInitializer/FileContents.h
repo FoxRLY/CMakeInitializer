@@ -5,6 +5,9 @@ namespace contents {
 namespace root {
 
 const char* const cmake_file = R""""(cmake_minimum_required(VERSION %1%)
+
+include(./scripts/macros.cmake)
+
 project(
     %2%
     VERSION 0.1.0
@@ -17,8 +20,7 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-include(./cpm/CPM.cmake)
-set(CPM_SOURCE_CACHE ~/.cache/CPM)
+cmake_pm_add_CPM()
 
 set(LIBRARY_LIST "")
 
@@ -26,27 +28,10 @@ add_subdirectory(src)
 
 if(PROJECT_IS_TOP_LEVEL)
     add_subdirectory(app)
-
-    find_package(Doxygen)
-    if(Doxygen_FOUND)
-        add_subdirectory(docs)
-    else()
-        message(STATUS "Doxygen not found - no docs will be generated")
-    endif()
-
-    find_package(GTest)
-    if(GTest_FOUND)
-        enable_testing()
-        add_subdirectory(test)
-    else()
-        message(STATUS "GoogleTest not found - tests are not available")
-    endif()
-
-    file(CREATE_LINK
-        "${PROJECT_BINARY_DIR}/compile_commands.json"
-        "${PROJECT_SOURCE_DIR}/compile_commands.json"
-        SYMBOLIC
-    )
+    cmake_pm_add_tests()
+    # cmake_pm_add_docs()
+    # cmake_pm_add_graphviz()
+    cmake_pm_add_compile_commands()
 endif()
 )"""";
 
@@ -135,6 +120,168 @@ echo '    clear                 - clear build directory'
 const char* const gitignore_file = R""""(/.build
 /.cache
 compile_commands.json
+)"""";
+
+}
+
+namespace app {
+
+const char* const c_file = R""""(#include <stdio.h>
+#include <example_lib/example_lib.h>
+
+int main(int argc, char* argv[]) {
+    printf("%i", sum(10, 20));
+}
+)"""";
+
+const char* const cpp_file = R""""(#include <iostream>
+#include <example_lib/example_lib.h>
+
+int main(int argc, char* argv[]) {
+    std::cout << sum(10, 20) << std::endl;
+}
+)"""";
+
+const char* const cmake_file = R""""(add_executable("${CMAKE_PROJECT_NAME}-app" app%1%)
+set(GENERAL_COMPILE_FLAGS "-Wall;-Wextra")
+set(DEBUG_COMPILE_FLAGS "${GENERAL_COMPILE_FLAGS};-g;-O0")
+set(RELEASE_COMPILE_FLAGS "${GENERAL_COMPILE_FLAGS};-O3")
+target_compile_options("${CMAKE_PROJECT_NAME}-app" PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_COMPILE_FLAGS}>")
+target_compile_options("${CMAKE_PROJECT_NAME}-app" PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>")
+target_link_libraries("${CMAKE_PROJECT_NAME}-app" PRIVATE ${LIBRARY_LIST})
+)"""";
+}
+
+namespace include {
+
+const char* const header_file = R""""(#pragma once
+
+int sum(int a, int b);
+)"""";
+}
+
+namespace src {
+
+const char* const cmake_file = R""""(file(GLOB V_GLOB LIST_DIRECTORIES true "*")
+foreach(item ${V_GLOB})
+    if(IS_DIRECTORY ${item})
+        add_subdirectory(${item})
+    endif()
+endforeach()
+set(LIBRARY_LIST ${LIBRARY_LIST} PARENT_SCOPE)
+)"""";
+
+const char* const example_lib_file = R""""(#include <example_lib/example_lib.h>
+
+int sum(int a, int b) { return a + b; }
+)"""";
+
+const char* const example_lib_cmake_file = R""""(set(LIB_NAME example_lib)
+file(GLOB_RECURSE HEADER_FILES "${PROJECT_SOURCE_DIR}/include/${LIB_NAME}/*.h")
+file(GLOB_RECURSE SOURCE_FILES "${PROJECT_SOURCE_DIR}/src/${LIB_NAME}/*%1%")
+add_library(${LIB_NAME} ${SOURCE_FILES} ${HEADER_FILES})
+target_include_directories(${LIB_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/include")
+list(APPEND LIBRARY_LIST ${LIB_NAME})
+set(LIBRARY_LIST ${LIBRARY_LIST} PARENT_SCOPE)
+)"""";
+}
+
+namespace docs {
+
+const char* const cmake_file = R""""(set(DOXYGEN_EXTRACT_ALL YES)
+set(DOXYGEN_BUILTIN_STL_SUPPORT YES)
+doxygen_add_docs(docs "${PROJECT_SOURCE_DIR}")
+)"""";
+
+const char* const mainpage_file = R""""(# Documentation for %1% project {#mainpage}
+This is docs for your project!
+)"""";
+}
+
+namespace test {
+
+const char* const main_file = R""""(#include <gtest/gtest.h>
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
+)"""";
+
+const char* const cmake_file = R""""(find_package(GTest REQUIRED)
+file(GLOB_RECURSE TEST_FILES "./*.cpp")
+add_executable(test_exec ${TEST_FILES})
+target_link_libraries(test_exec PRIVATE GTest::gtest_main ${LIBRARY_LIST})
+gtest_discover_tests(test_exec)
+)"""";
+
+const char* const example_lib_c_file = R""""(#include <gtest/gtest.h>
+extern "C"{
+    #include <example_lib/example_lib.h>
+}
+
+TEST(ExampleTests, TestFive_Five){ ASSERT_EQ(10, sum(5, 5)); }
+)"""";
+
+const char* const example_lib_cpp_file = R""""(#include <gtest/gtest.h>
+#include <example_lib/example_lib.h>
+
+TEST(ExampleTests, TestFive_Five){ ASSERT_EQ(10, sum(5, 5)); }
+)"""";
+
+}
+
+namespace scripts {
+
+const char* const macros = R""""(cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+
+macro(cmake_pm_add_docs)
+    find_package(Doxygen)
+    if(Doxygen_FOUND)
+        add_subdirectory(docs)
+    else()
+        message(STATUS "Doxygen not found - no docs will be generated")
+    endif()
+endmacro()
+
+macro(cmake_pm_add_tests)
+    find_package(GTest)
+    if(GTest_FOUND)
+        enable_testing()
+        add_subdirectory(test)
+    else()
+        message(STATUS "GoogleTest not found - tests are not available")
+    endif()
+endmacro()
+
+macro(cmake_pm_add_graphviz)
+    find_program(GRAPHVIZ dot)
+    if(GRAPHVIZ)
+        add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/_graphviz
+            COMMAND ${CMAKE_COMMAND} "--graphviz=graphviz/deps.txt" .
+            COMMAND dot -Tsvg graphviz/deps.txt -o deps.svg
+            COMMAND dot -Tpng graphviz/deps.txt -o deps.png
+            COMMENT "Plotting dependencies graph to deps.svg"
+            DEPENDS "${CMAKE_PROJECT_NAME}-app"
+            WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+        add_custom_target(graphviz ALL
+            DEPENDS ${CMAKE_BINARY_DIR}/_graphviz)
+    else()
+        message(STATUS "GraphViz not found - dependency graph will not be generated")
+    endif()
+endmacro()
+
+macro(cmake_pm_add_compile_commands)
+    file(CREATE_LINK
+        "${PROJECT_BINARY_DIR}/compile_commands.json"
+        "${PROJECT_SOURCE_DIR}/compile_commands.json"
+        SYMBOLIC
+    )
+endmacro()
+
+macro(cmake_pm_add_CPM)
+    include(./scripts/CPM.cmake)
+    set(CPM_SOURCE_CACHE ~/.cache/CPM)
+endmacro()
 )"""";
 
 const char* const cpm = R""""(# CPM.cmake - CMake's missing package manager
@@ -1406,111 +1553,6 @@ function(cpm_prettify_package_arguments OUT_VAR IS_IN_COMMENT)
   )
 
 endfunction()
-)"""";
-}
-
-namespace app {
-
-const char* const c_file = R""""(#include <stdio.h>
-#include <example_lib/example_lib.h>
-
-int main(int argc, char* argv[]) {
-    printf("%i", sum(10, 20));
-}
-)"""";
-
-const char* const cpp_file = R""""(#include <iostream>
-#include <example_lib/example_lib.h>
-
-int main(int argc, char* argv[]) {
-    std::cout << sum(10, 20) << std::endl;
-}
-)"""";
-
-const char* const cmake_file = R""""(add_executable("${CMAKE_PROJECT_NAME}-app" app%1%)
-set(GENERAL_COMPILE_FLAGS "-Wall;-Wextra")
-set(DEBUG_COMPILE_FLAGS "${GENERAL_COMPILE_FLAGS};-g;-O0")
-set(RELEASE_COMPILE_FLAGS "${GENERAL_COMPILE_FLAGS};-O3")
-target_compile_options("${CMAKE_PROJECT_NAME}-app" PRIVATE "$<$<CONFIG:DEBUG>:${DEBUG_COMPILE_FLAGS}>")
-target_compile_options("${CMAKE_PROJECT_NAME}-app" PRIVATE "$<$<CONFIG:RELEASE>:${RELEASE_COMPILE_FLAGS}>")
-target_link_libraries("${CMAKE_PROJECT_NAME}-app" PRIVATE ${LIBRARY_LIST})
-)"""";
-}
-
-namespace include {
-
-const char* const header_file = R""""(#pragma once
-
-int sum(int a, int b);
-)"""";
-}
-
-namespace src {
-
-const char* const cmake_file = R""""(file(GLOB V_GLOB LIST_DIRECTORIES true "*")
-foreach(item ${V_GLOB})
-    if(IS_DIRECTORY ${item})
-        add_subdirectory(${item})
-    endif()
-endforeach()
-set(LIBRARY_LIST ${LIBRARY_LIST} PARENT_SCOPE)
-)"""";
-
-const char* const example_lib_file = R""""(#include <example_lib/example_lib.h>
-
-int sum(int a, int b) { return a + b; }
-)"""";
-
-const char* const example_lib_cmake_file = R""""(set(LIB_NAME example_lib)
-file(GLOB_RECURSE HEADER_FILES "${PROJECT_SOURCE_DIR}/include/${LIB_NAME}/*.h")
-file(GLOB_RECURSE SOURCE_FILES "${PROJECT_SOURCE_DIR}/src/${LIB_NAME}/*%1%")
-add_library(${LIB_NAME} ${SOURCE_FILES} ${HEADER_FILES})
-target_include_directories(${LIB_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/include")
-list(APPEND LIBRARY_LIST ${LIB_NAME})
-set(LIBRARY_LIST ${LIBRARY_LIST} PARENT_SCOPE)
-)"""";
-}
-
-namespace docs {
-
-const char* const cmake_file = R""""(set(DOXYGEN_EXTRACT_ALL YES)
-set(DOXYGEN_BUILTIN_STL_SUPPORT YES)
-doxygen_add_docs(docs "${PROJECT_SOURCE_DIR}")
-)"""";
-
-const char* const mainpage_file = R""""(# Documentation for %1% project {#mainpage}
-This is docs for your project!
-)"""";
-}
-
-namespace test {
-
-const char* const main_file = R""""(#include <gtest/gtest.h>
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
-)"""";
-
-const char* const cmake_file = R""""(find_package(GTest REQUIRED)
-file(GLOB_RECURSE TEST_FILES "./*.cpp")
-add_executable(test_exec ${TEST_FILES})
-target_link_libraries(test_exec PRIVATE GTest::gtest_main ${LIBRARY_LIST})
-gtest_discover_tests(test_exec)
-)"""";
-
-const char* const example_lib_c_file = R""""(#include <gtest/gtest.h>
-extern "C"{
-    #include <example_lib/example_lib.h>
-}
-
-TEST(ExampleTests, TestFive_Five){ ASSERT_EQ(10, sum(5, 5)); }
-)"""";
-
-const char* const example_lib_cpp_file = R""""(#include <gtest/gtest.h>
-#include <example_lib/example_lib.h>
-
-TEST(ExampleTests, TestFive_Five){ ASSERT_EQ(10, sum(5, 5)); }
 )"""";
 
 }

@@ -56,7 +56,7 @@ void CMakeInitializer::initialize() {
     populate_src_folder();
     populate_docs_folder();
     populate_test_folder();
-    populate_cpm_folder();
+    populate_scripts_folder();
     const char* result_output_format = R""""(Project creation successfull:
 Project name: %1%
 Language: %2%%3%
@@ -78,7 +78,7 @@ static options::options_description get_description() {
 
 void CMakeInitializer::create_folder_structure() {
     fs::create_directories(project_name + "/src");
-    fs::create_directories(project_name + "/cpm");
+    fs::create_directories(project_name + "/scripts");
     fs::create_directories(project_name + "/include");
     fs::create_directories(project_name + "/docs");
     fs::create_directories(project_name + "/app");
@@ -107,8 +107,9 @@ void CMakeInitializer::populate_root_folder() {
     fs::permissions(project_name + "/cmake-pm", fs::perms::owner_exec, fs::perm_options::add);
 }
 
-void CMakeInitializer::populate_cpm_folder() {
-    create_file(project_name + "/cpm/CPM.cmake", contents::root::cpm);
+void CMakeInitializer::populate_scripts_folder() {
+    create_file(project_name + "/scripts/CPM.cmake", contents::scripts::cpm);
+    create_file(project_name + "/scripts/macros.cmake", contents::scripts::macros);
 }
 
 void CMakeInitializer::populate_app_folder() {
