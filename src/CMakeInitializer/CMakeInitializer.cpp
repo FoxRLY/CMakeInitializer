@@ -10,7 +10,6 @@
 
 namespace options = boost::program_options;
 namespace fs = std::filesystem;
-using Initializer = const CMakeInitializer* const;
 
 static options::options_description get_description();
 

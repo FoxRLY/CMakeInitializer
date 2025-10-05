@@ -4,7 +4,7 @@ Creates CMake project for C or CPP with modern structure and neat project manage
 - Linux
 - CMake   v3.27   >=
 - Ninja   v1.11.1 >=
-- GTest   v1.11   >=
+- GTest   v1.11   >= (optional)
 - Doxygen v1.9.8  >= (optional)<br>
 Requirements are a bit high, but reasonable
 ## Initializer command overview

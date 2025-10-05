@@ -11,8 +11,6 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-enable_testing()
-include(GoogleTest)
 find_package(Doxygen)
 if(Doxygen_FOUND)
     add_subdirectory(docs)
@@ -38,7 +36,6 @@ set(LIBRARY_LIST Boost::program_options Boost::format Boost::algorithm)
 
 add_subdirectory(src)
 add_subdirectory(app)
-add_subdirectory(test)
 file(CREATE_LINK
     "${CMAKE_BINARY_DIR}/compile_commands.json"
     "${CMAKE_SOURCE_DIR}/compile_commands.json"
