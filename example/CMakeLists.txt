@@ -28,8 +28,13 @@ if(PROJECT_IS_TOP_LEVEL)
         message(STATUS "Doxygen not found - no docs will be generated")
     endif()
 
-    enable_testing()
-    add_subdirectory(test)
+    find_package(GTest)
+    if(GTest_FOUND)
+        enable_testing()
+        add_subdirectory(test)
+    else()
+        message(STATUS "GoogleTest not found - tests are not available")
+    endif()
 
     file(CREATE_LINK
         "${PROJECT_BINARY_DIR}/compile_commands.json"

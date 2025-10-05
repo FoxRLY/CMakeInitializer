@@ -1,4 +1,4 @@
-#include "CMakeInitializer/Errors.h"
+#include <CMakeInitializer/Errors.h>
 #include <CMakeInitializer/CMakeInitializer.h>
 #include <exception>
 #include <iostream>
